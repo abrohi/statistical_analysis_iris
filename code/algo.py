@@ -3,11 +3,6 @@ from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score
 from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from sklearn.naive_bayes import GaussianNB
-from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler
 
 class algo():
@@ -46,7 +41,37 @@ class algo():
         X_validation_std = sc.fit_transform(X_validation)
         
         return X_train_std, X_validation_std, Y_train, Y_validation
+    
+    
+    def model_fit(X_train_std, Y_train):
+        """
+        This function will fit the model using the training data 
+        for X and Y. Note, this is using no hyperparamter tunning.
+        """
+        logreg = LogisticRegression(multi_class= "multinomial", 
+                                    solver = "lbfgs")
+        logreg.fit(X_train_std, Y_train)
         
+        return logreg
+    
+    def model_accuracy(model, X_validation_std, Y_validation):
+        """
+        Calculate the model accuracy (i.e. the number of times
+        the model made the correct classification using the testing
+        data and model. 
+        Note, this is using the score() function in sklearn.
+        """
+        print('Accuracy of logistic regression classifier on test set: {:.2f}'.format(model.score(X_validation_std, Y_validation)))
+        
+    def confusion_matrix(model, X_validation_std, Y_validation):
+        """
+        Calcualate a confusion matrix to see the accuracy by group.
+        Input required is model, testing data.
+        """
+        Y_pred = model.predict(X_validation_std)
+        
+        confusion_matrix = confusion_matrix(Y_validation, Y_pred)
+        return confusion_matrix
 
     
 
