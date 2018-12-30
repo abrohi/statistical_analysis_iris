@@ -4,6 +4,9 @@ from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
+from imblearn.over_sampling import SMOTE
+import pandas as pd
+import numpy as np
 
 class algo():
     
@@ -14,45 +17,94 @@ class algo():
    
     """
     
-    def preprocessing(data):
-       
+    def eduction_feature(data):
         """
-        This function will convert the data-set into a numpy array and 
-        then split the data into train and validation, and finally 
-        standardise the features. One will have arrays 
-        X_train_std, X_validation_std, Y_train and Y_validation
-        
+        cleaning eduction freature as it contains many categories.
+        grouping all the basics
+        """
+        data['education'] = np.where(data['education'].str.contains('basic'), 'Basic', data['education'])
+    
+  
+    def create_dummy_variables(data):
+        """
+        create dummy variables for categorical features
         """
         
-        ##spliting data by train and test
-        ##create a validation dataset
-        # Split-out validation dataset
-        array = data.values ##convert dataset to numpy array
-        X = array[:,0:4] ##get the first 4 columns for x values
-        Y = array[:,4] ##get last column for y variable
+        cat_vars = ['job','marital','education','default','housing','loan','contact','month','day_of_week','poutcome']
+        
+        for var in cat_vars:
+            cat_list='var'+'_'+var
+            cat_list = pd.get_dummies(data[var], prefix=var)
+            data1=data.join(cat_list)
+            data=data1
+            
+        ##keeping the right columns
+        data_vars=data.columns.values.tolist()
+        to_keep=[i for i in data_vars if i not in cat_vars]
+        
+        data_final=data[to_keep]
+        
+        return data_final
+    
+    def standardiser(data):
+        """
+        This function will split the dataframe into X and y and
+        also standardise the features (important for linear regression
+        and make emsemble maching learning methods quicker to train)
+        Note, make sure your predictor is labelled as 'y'.
+        """
+        
+        X = data.drop(['y'], axis = 1)
+        y = data.loc[:, 'y']
+        
+        sc = StandardScaler()
+        X_std = sc.fit_transform(X)
+        X_std = pd.DataFrame(X_std, columns = X.columns)
+        
+        return y, X_std
+    
+    def preprocessing(X_std, y):
+        """
+        splitting data into training and testing (80:20)
+        inputs require X_std and y 
+        """
         validation_size = 0.20 ##80:20 for testing
         seed = 7
-        X_train, X_validation, Y_train, Y_validation = model_selection.train_test_split(X, Y, test_size=validation_size, 
-                                         random_state=seed)
-        ##standardising the features - 
-        ##seeing how many stdev is point away from mean
-        sc = StandardScaler()
-        X_train_std = sc.fit_transform(X_train)
-        X_validation_std = sc.fit_transform(X_validation)
+        X_train, X_test, y_train, y_test = model_selection.train_test_split(X_std, y, test_size=validation_size, 
+                                 random_state=seed)
         
-        return X_train_std, X_validation_std, Y_train, Y_validation
+        return X_train, X_test, y_train, y_test
     
-    
-    def model_fit(X_train_std, Y_train):
+    def SMOTE(X_train, y_train):
+        """
+        Applying over-sampling technique on the training data only.
+        Therefore no data will be lost in the testing dataset
+        """     
+        os = SMOTE(random_state=0)
+        columns = X_train.columns
+        os_data_X,os_data_y=os.fit_sample(X_train, y_train)
+        os_data_X = pd.DataFrame(data=os_data_X,columns=columns )
+        os_data_y= pd.DataFrame(data=os_data_y,columns=['y'])
+        
+        return os_data_X, os_data_y
+        
+   
+    def model_fit(os_data_X, os_data_y, X_test):
         """
         This function will fit the model using the training data 
-        for X and Y. Note, this is using no hyperparamter tunning.
+        which has been oversampled. 
+        Note, this is using no hyperparamter tunning.
+        Returns the y_pred and y_pred_proba
         """
-        logreg = LogisticRegression(multi_class= "multinomial", 
-                                    solver = "lbfgs")
-        logreg.fit(X_train_std, Y_train)
+        logreg = LogisticRegression()
+        logreg.fit(os_data_X, os_data_y)
+        y_pred = logreg.predict(X_test)
+        y_pred_proba = logreg.predict_proba(X_test)
         
-        return logreg
+        return y_pred, y_pred_proba
+    
+    
+    
     
     def model_accuracy(model, X_validation_std, Y_validation):
         """
