@@ -17,7 +17,7 @@ class algo():
    
     """
     
-    def eduction_feature(data):
+    def education_feature(data):
         """
         cleaning eduction freature as it contains many categories.
         grouping all the basics
@@ -89,42 +89,45 @@ class algo():
         return os_data_X, os_data_y
         
    
-    def model_fit(os_data_X, os_data_y, X_test):
+    def model_fit(os_data_X, os_data_y, X_test, y_test):
         """
         This function will fit the model using the training data 
         which has been oversampled. 
         Note, this is using no hyperparamter tunning.
-        Returns the y_pred and y_pred_proba
+        Returns the y_pred, y_pred_proba, accuracy, confusion matrix
+        and classification report
         """
-        logreg = LogisticRegression()
-        logreg.fit(os_data_X, os_data_y)
+        logreg = LogisticRegression(solver = 'lbfgs')
+        logreg.fit(os_data_X, os_data_y.values.ravel())
         y_pred = logreg.predict(X_test)
         y_pred_proba = logreg.predict_proba(X_test)
+        accuracy = ('Accuracy of logistic regression classifier on test set: {:.2f}'.format(logreg.score(X_test, y_test)))
+        conf_matrix = confusion_matrix(y_test, y_pred)
+        class_report = classification_report(y_test, y_pred)
         
-        return y_pred, y_pred_proba
+        return y_pred, y_pred_proba, accuracy, conf_matrix, class_report
     
     
-    
-    
-    def model_accuracy(model, X_validation_std, Y_validation):
+    def run_algo(data):
         """
-        Calculate the model accuracy (i.e. the number of times
-        the model made the correct classification using the testing
-        data and model. 
-        Note, this is using the score() function in sklearn.
+        This function will run the entire algorithm including
+        pre-processing the dataframe for it to be machine learning
+        ready.
+        Input: data
+        Outputs will be y_pred, y_pred_proba, accuracy, conf_matrix
+        and classification_report
         """
-        print('Accuracy of logistic regression classifier on test set: {:.2f}'.format(model.score(X_validation_std, Y_validation)))
+        algo.education_feature(data)
+        data_final = algo.create_dummy_variables(data)
+        y, X_std = algo.standardiser(data_final)
+        X_train, X_test, y_train, y_test = algo.preprocessing(X_std, y)
+        os_data_X, os_data_y = algo.SMOTE(X_train, y_train)
+        y_pred, y_pred_proba, accuracy, conf_matrix, class_report = algo.model_fit(os_data_X, os_data_y, X_test, y_test)
         
-    def confusion_matrix(model, X_validation_std, Y_validation):
-        """
-        Calcualate a confusion matrix to see the accuracy by group.
-        Input required is model, testing data.
-        """
-        Y_pred = model.predict(X_validation_std)
+        return y_pred, y_pred_proba, accuracy, conf_matrix, class_report 
         
-        confusion_matrix = confusion_matrix(Y_validation, Y_pred)
-        return confusion_matrix
-
+        
+        
     
 
 
